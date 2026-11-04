@@ -1,0 +1,29 @@
+[project]
+name = "ytdlp-mcp"
+version = "0.1.0"
+description = "MCP server for yt-dlp: download video and audio, read transcripts, search, and sync playlists"
+readme = "README.md"
+authors = [
+    { name = "Muhammad Mansha", email = "manshaehsan000@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "mcp[cli]>=2.3.0",
+    "yt-dlp[default]>=2026.10.26",
+]
+
+[project.scripts]
+ytdlp-mcp = "ytdlp_mcp:main"
+
+[build-system]
+requires = ["uv_build>=0.11.6,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["live: needs network access to YouTube and ffmpeg (deselect with -m \"not live\")"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
