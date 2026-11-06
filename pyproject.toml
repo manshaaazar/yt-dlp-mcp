@@ -22,7 +22,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
 ]
 authors = [
-    { name = "Muhammad Mansha", email = "manshaehsan000@gmail.com" }
+    { name = "manshaaazar" }
 ]
 requires-python = ">=3.11"
 dependencies = [
