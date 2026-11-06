@@ -65,6 +65,30 @@ For Claude Desktop, add this to `claude_desktop_config.json`:
 }
 ```
 
+### Linux (isolated, with rootless Podman)
+
+Runs the server in a throwaway container, so ffmpeg, Node and Python stay off
+the host. Only `~/Videos`, `~/Music` and `~/.local/share/yt-dlp-mcp` are
+mounted, at the same paths inside the container, so the file paths the tools
+return are valid on the host and files are owned by your user.
+
+```bash
+sudo apt install -y podman
+cd yt-dlp-mcp
+podman build -t ytdlp-mcp .
+claude mcp add --scope user yt-dlp -- "$PWD/run-podman.sh"
+```
+
+Rebuild the image (`podman build -t ytdlp-mcp .`) to pick up code or yt-dlp updates.
+
+### Linux (directly on the host)
+
+```bash
+sudo apt install -y ffmpeg nodejs
+uv sync
+claude mcp add --scope user yt-dlp -- "$PWD/.venv/bin/ytdlp-mcp"
+```
+
 ## Configuration
 
 All settings are optional environment variables.
@@ -73,8 +97,8 @@ All settings are optional environment variables.
 |----------|---------|---------|
 | `YTDLP_VIDEO_DIR` | `~/Videos` | Where videos are saved |
 | `YTDLP_AUDIO_DIR` | `~/Music` | Where audio is saved |
-| `YTDLP_MCP_DATA_DIR` | `%LOCALAPPDATA%\yt-dlp-mcp` | Holds `archive.txt`, the record of playlist items already downloaded |
-| `YTDLP_FFMPEG` | auto-detected | Full path to `ffmpeg.exe` |
+| `YTDLP_MCP_DATA_DIR` | `%LOCALAPPDATA%\yt-dlp-mcp` on Windows, `$XDG_DATA_HOME/yt-dlp-mcp` (default `~/.local/share/yt-dlp-mcp`) elsewhere | Holds `archive.txt`, the record of playlist items already downloaded |
+| `YTDLP_FFMPEG` | auto-detected | Full path to the ffmpeg executable |
 | `YTDLP_NODE` | `node` on PATH | Full path to the Node.js executable |
 | `YTDLP_MCP_WAIT_SECONDS` | `50` | How long a download tool waits before returning a `job_id` |
 | `YTDLP_MCP_LOG_LEVEL` | `INFO` | Log level; logs go to stderr |

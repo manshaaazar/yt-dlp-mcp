@@ -267,6 +267,9 @@ class Downloader:
         with ydl:
             if single:
                 ie_result = ydl.extract_info(url, download=False, process=False)
+                if ie_result is None:
+                    # yt-dlp swallowed an extraction error (e.g. video unavailable) and logged it.
+                    raise RuntimeError(logger.errors[-1] if logger.errors else "Could not read that video")
                 if ie_result.get("_type") == "playlist":
                     raise ValueError(
                         "That link is a playlist or channel. Use download_playlist, "

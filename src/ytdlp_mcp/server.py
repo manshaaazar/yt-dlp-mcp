@@ -46,10 +46,13 @@ Sponsors = Annotated[
 def _settings(need_ffmpeg: bool = False) -> Settings:
     settings = load_settings()
     if need_ffmpeg and settings.ffmpeg is None:
-        raise ToolError(
-            "ffmpeg not found. Install it with `winget install Gyan.FFmpeg`, "
-            "or set YTDLP_FFMPEG to the full path of ffmpeg.exe."
-        )
+        if sys.platform == "win32":
+            hint = "Install it with `winget install Gyan.FFmpeg`, or set YTDLP_FFMPEG to the full path of ffmpeg.exe."
+        elif sys.platform == "darwin":
+            hint = "Install it with `brew install ffmpeg`, or set YTDLP_FFMPEG to the full path of ffmpeg."
+        else:
+            hint = "Install it with your package manager (e.g. `sudo apt install ffmpeg`), or set YTDLP_FFMPEG to the full path of ffmpeg."
+        raise ToolError(f"ffmpeg not found. {hint}")
     return settings
 
 

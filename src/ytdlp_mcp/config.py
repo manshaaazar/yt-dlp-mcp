@@ -22,8 +22,12 @@ class Settings:
 
 
 def _default_data_dir(env: Mapping[str, str], home: Path) -> Path:
+    """%LOCALAPPDATA% on Windows; $XDG_DATA_HOME or ~/.local/share elsewhere."""
     base = env.get("LOCALAPPDATA")
-    return Path(base) / "yt-dlp-mcp" if base else home / ".yt-dlp-mcp"
+    if base:
+        return Path(base) / "yt-dlp-mcp"
+    xdg = env.get("XDG_DATA_HOME")
+    return (Path(xdg) if xdg else home / ".local" / "share") / "yt-dlp-mcp"
 
 
 def load_settings(

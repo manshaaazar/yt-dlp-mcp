@@ -32,6 +32,16 @@ def test_data_dir_defaults_to_localappdata(tmp_path):
     assert settings.data_dir == tmp_path / "lad" / "yt-dlp-mcp"
 
 
+def test_data_dir_defaults_to_xdg_data_home(tmp_path):
+    settings = load_settings(env={"XDG_DATA_HOME": str(tmp_path / "xdg")}, home=tmp_path)
+    assert settings.data_dir == tmp_path / "xdg" / "yt-dlp-mcp"
+
+
+def test_data_dir_defaults_to_local_share_without_xdg(tmp_path):
+    settings = load_settings(env={}, home=tmp_path)
+    assert settings.data_dir == tmp_path / ".local" / "share" / "yt-dlp-mcp"
+
+
 def _touch(path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(b"")
