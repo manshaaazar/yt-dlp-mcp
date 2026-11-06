@@ -1,12 +1,67 @@
-# yt-dlp MCP server
+# yt-dlp MCP Server for YouTube: download videos, audio, transcripts and playlists with Claude
 
-An MCP server that gives Claude (or any MCP client) the power of
-[yt-dlp](https://github.com/yt-dlp/yt-dlp): download video and audio, read
-transcripts, inspect videos, search YouTube, and sync whole playlists or channels.
-It works with YouTube and the 1,800+ other sites yt-dlp supports.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
+[![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-black.svg)](https://modelcontextprotocol.io/)
+[![Powered by yt-dlp](https://img.shields.io/badge/powered%20by-yt--dlp-red.svg)](https://github.com/yt-dlp/yt-dlp)
+
+A **YouTube MCP server** built on [yt-dlp](https://github.com/yt-dlp/yt-dlp).
+It lets Claude Code, Claude Desktop, Cursor, Windsurf, VS Code and any other
+[Model Context Protocol](https://modelcontextprotocol.io/) client download
+videos and audio, read transcripts, inspect videos, search YouTube, and sync
+whole playlists or channels, all by asking in plain language. It works with
+YouTube and the 1,800+ other sites yt-dlp supports (Vimeo, TikTok, Twitter/X,
+Twitch, SoundCloud, Reddit and more).
 
 Videos are saved as MP4 to your **Videos** folder. Audio is saved as MP3, with
 cover art, title, artist and chapters embedded, to your **Music** folder.
+
+```text
+You:    Download the audio of this lecture and split it by chapter
+Claude: Saved 12 MP3 tracks to ~/Music/Lecture Title/ ...
+
+You:    Summarize what this video says about rate limiting
+Claude: (reads the transcript with get_transcript, no download needed) ...
+
+You:    Sync my "Watch later" playlist to my Videos folder
+Claude: Downloaded 3 new videos, 41 already present and skipped ...
+```
+
+**Contents:**
+[Why this server](#why-this-yt-dlp-mcp-server) •
+[Tools](#tools) •
+[Requirements](#requirements) •
+[Install](#install) •
+[Client setup](#mcp-client-setup) •
+[Linux and Podman](#linux-isolated-with-rootless-podman) •
+[Configuration](#configuration) •
+[Examples](#what-you-can-ask) •
+[FAQ](#faq)
+
+## Why this yt-dlp MCP server
+
+There are several yt-dlp and YouTube MCP servers. This one focuses on being a
+reliable downloader and research tool for daily use:
+
+- **Background downloads with job tracking.** Long downloads never block the
+  conversation. Short ones return the file path directly; long ones return a
+  `job_id` you can check or cancel. Two run at a time, the rest queue.
+- **Playlist and channel sync.** A download archive remembers what you already
+  have, so re-running `download_playlist` only fetches new uploads.
+- **Transcripts without downloading.** Timestamped text from real subtitles or
+  auto-captions, paged so long videos fit in context.
+- **Music-library quality audio.** MP3 with embedded cover art, title, artist
+  and chapters. Optionally split an album upload into one track per chapter.
+- **Clips and SponsorBlock.** Save just a `start`/`end` range, or strip sponsor
+  segments automatically.
+- **Files land where you expect.** Videos go to `~/Videos`, music to `~/Music`,
+  playlists into their own subfolder, with readable file names.
+- **Bundled yt-dlp.** yt-dlp is a Python dependency of this package, so you do
+  not install or update it separately. One command upgrades it.
+- **Sandboxed option on Linux.** Run it in a rootless Podman container with only
+  your media folders mounted.
+- **Tested against the real protocol.** The test suite launches the server over
+  stdio exactly as an MCP client does.
 
 ## Tools
 
@@ -34,32 +89,74 @@ playlists or channels are refused by the single-video tools; use
 
 - Windows, macOS or Linux with Python 3.11+ and [uv](https://docs.astral.sh/uv/)
 - **ffmpeg** for merging best-quality video, MP3 conversion, clips, SponsorBlock and
-  chapter splitting. On Windows: `winget install Gyan.FFmpeg`. The server also
-  finds ffmpeg in winget's install folders even when your PATH has not refreshed.
+  chapter splitting. On Windows: `winget install Gyan.FFmpeg`. On macOS:
+  `brew install ffmpeg`. On Debian/Ubuntu: `sudo apt install ffmpeg`. The server
+  also finds ffmpeg in winget's install folders even when your PATH has not refreshed.
 - **Node.js** (or Deno). YouTube now requires a JavaScript runtime for yt-dlp to
   solve its player challenges. The server passes the Node it finds on PATH.
 
 ## Install
 
+Clone the repository and create the environment:
+
 ```powershell
+git clone https://github.com/manshaaazar/yt-dlp-mcp.git
 cd yt-dlp-mcp
 uv sync
 ```
 
-Register it with Claude Code for all projects:
+This creates a `ytdlp-mcp` executable inside `.venv` that MCP clients launch over
+stdio:
+
+- Windows: `C:\path\to\yt-dlp-mcp\.venv\Scripts\ytdlp-mcp.exe`
+- macOS / Linux: `/path/to/yt-dlp-mcp/.venv/bin/ytdlp-mcp`
+
+You can also run it without cloning, straight from GitHub with `uvx`:
+
+```bash
+uvx --from git+https://github.com/manshaaazar/yt-dlp-mcp ytdlp-mcp
+```
+
+## MCP client setup
+
+The server speaks MCP over stdio, so it works with every MCP client. Replace the
+path below with the executable from [Install](#install).
+
+### Claude Code
+
+Register it for all projects:
 
 ```powershell
 claude mcp add --scope user yt-dlp -- "C:\path\to\yt-dlp-mcp\.venv\Scripts\ytdlp-mcp.exe"
 claude mcp list
 ```
 
-For Claude Desktop, add this to `claude_desktop_config.json`:
+### Claude Desktop
+
+Add this to `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "yt-dlp": {
       "command": "C:\\path\\to\\yt-dlp-mcp\\.venv\\Scripts\\ytdlp-mcp.exe"
+    }
+  }
+}
+```
+
+### Cursor, Windsurf, VS Code and other clients
+
+Use the same JSON shape in the client's MCP settings (`.cursor/mcp.json`,
+`~/.codeium/windsurf/mcp_config.json`, or VS Code's `mcp.json`). For `uvx`
+without a clone:
+
+```json
+{
+  "mcpServers": {
+    "yt-dlp": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/manshaaazar/yt-dlp-mcp", "ytdlp-mcp"]
     }
   }
 }
@@ -108,6 +205,23 @@ The server ignores your personal `yt-dlp.conf` so results stay predictable.
 To download a playlist item again after deleting it, remove its line from
 `archive.txt`. Single-video downloads never use the archive.
 
+## What you can ask
+
+Once connected, talk to your assistant normally. Some prompts that map to the
+tools above:
+
+- "Download this YouTube video in 1080p."
+- "Save just the part from 12:30 to 15:00 of this video."
+- "Get the audio of this song as MP3 with the album art."
+- "This upload is a full album. Download it and split it into tracks."
+- "Download this talk but skip the sponsor segments."
+- "Give me the transcript of this video and summarize the main points."
+- "What does the speaker say about X? Quote the timestamps."
+- "Search YouTube for the best Rust async tutorials and list the links."
+- "List every video in this channel uploaded after 2025-01-01."
+- "Download this playlist. Later, run it again to get only the new videos."
+- "How are my downloads going?" / "Cancel that download."
+
 ## Keeping yt-dlp current
 
 YouTube changes often, and yt-dlp releases fixes quickly. When downloads start
@@ -118,7 +232,7 @@ uv lock --upgrade-package yt-dlp
 uv sync
 ```
 
-Then restart your MCP client.
+Then restart your MCP client. If you use the Podman image, rebuild it instead.
 
 ## Tests
 
@@ -130,7 +244,57 @@ uv run pytest -m "not live"   # offline unit tests only
 `tests/test_stdio.py` launches the real server over stdio, the way an MCP client
 does, which catches any stray output that would corrupt the protocol stream.
 
+## FAQ
+
+**Does this work with sites other than YouTube?**
+Yes. Anything yt-dlp supports: Vimeo, TikTok, Twitter/X, Twitch VODs,
+SoundCloud, Bandcamp, Reddit, Instagram and
+[1,800+ others](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md).
+
+**Do I need to install yt-dlp myself?**
+No. yt-dlp is a dependency of this package and is installed by `uv sync`. You
+only need ffmpeg and Node.js on the machine.
+
+**Can Claude read a video without downloading it?**
+Yes. `get_transcript` returns the timestamped transcript from subtitles or
+auto-captions, and `get_video_info` returns metadata and chapters. Neither saves
+the video.
+
+**Why does a download tool return a `job_id`?**
+Downloads run in the background so the conversation is not blocked. The tool
+waits up to 50 seconds; if the download takes longer, it hands back a `job_id`
+to check with `check_downloads`.
+
+**Downloads suddenly fail with a YouTube error.**
+YouTube changed something and yt-dlp has likely already shipped a fix. See
+[Keeping yt-dlp current](#keeping-yt-dlp-current).
+
+**Where do files go?**
+Videos to `~/Videos`, audio to `~/Music`, playlists into a subfolder named after
+the playlist. Change this with `YTDLP_VIDEO_DIR` and `YTDLP_AUDIO_DIR`.
+
+**Is it safe to run?**
+The server only talks to your MCP client over stdio and writes to your media
+folders. On Linux you can run it in a rootless, read-only Podman container with
+only those folders mounted.
+
+## Contributing
+
+Issues and pull requests are welcome. If this server is useful to you, a star
+helps other people find it.
+
 ## Notes
 
 Respect the terms of service of the sites you download from, and only download
 content you have the right to save.
+
+## License
+
+[MIT](LICENSE)
+
+---
+
+*Keywords: YouTube MCP server, yt-dlp MCP, Model Context Protocol, Claude MCP
+YouTube downloader, Claude Code YouTube, Claude Desktop YouTube, Cursor MCP
+video download, YouTube transcript MCP, download YouTube video with AI, MP3
+from YouTube with Claude, playlist downloader MCP, Python MCP server.*

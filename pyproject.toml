@@ -1,8 +1,26 @@
 [project]
 name = "ytdlp-mcp"
 version = "0.1.0"
-description = "MCP server for yt-dlp: download video and audio, read transcripts, search, and sync playlists"
+description = "YouTube MCP server built on yt-dlp: download video and audio, read transcripts, search YouTube, and sync playlists from Claude and any MCP client"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["mcp", "mcp-server", "model-context-protocol", "yt-dlp", "youtube", "youtube-downloader", "youtube-transcript", "claude", "claude-code", "claude-desktop", "cursor", "video", "audio", "playlist"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Internet :: WWW/HTTP",
+]
 authors = [
     { name = "Muhammad Mansha", email = "manshaehsan000@gmail.com" }
 ]
@@ -11,6 +29,11 @@ dependencies = [
     "mcp[cli]>=2.3.0",
     "yt-dlp[default]>=2026.10.26",
 ]
+
+[project.urls]
+Homepage = "https://github.com/manshaaazar/yt-dlp-mcp"
+Repository = "https://github.com/manshaaazar/yt-dlp-mcp"
+Issues = "https://github.com/manshaaazar/yt-dlp-mcp/issues"
 
 [project.scripts]
 ytdlp-mcp = "ytdlp_mcp:main"
