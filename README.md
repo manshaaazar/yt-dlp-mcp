@@ -4,6 +4,8 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-black.svg)](https://modelcontextprotocol.io/)
 [![Powered by yt-dlp](https://img.shields.io/badge/powered%20by-yt--dlp-red.svg)](https://github.com/yt-dlp/yt-dlp)
+[![Container image](https://img.shields.io/badge/ghcr.io-yt--dlp--mcp-blue?logo=docker)](https://github.com/manshaaazar/yt-dlp-mcp/pkgs/container/yt-dlp-mcp)
+[![Build](https://github.com/manshaaazar/yt-dlp-mcp/actions/workflows/container.yml/badge.svg)](https://github.com/manshaaazar/yt-dlp-mcp/actions/workflows/container.yml)
 
 A **YouTube MCP server** built on [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 It lets Claude Code, Claude Desktop, Cursor, Windsurf, VS Code and any other
@@ -33,7 +35,7 @@ Claude: Downloaded 3 new videos, 41 already present and skipped ...
 [Requirements](#requirements) •
 [Install](#install) •
 [Client setup](#mcp-client-setup) •
-[Linux and Podman](#linux-isolated-with-rootless-podman) •
+[Docker / Podman](#run-in-a-container-docker-or-podman) •
 [Configuration](#configuration) •
 [Examples](#what-you-can-ask) •
 [FAQ](#faq)
@@ -58,8 +60,9 @@ reliable downloader and research tool for daily use:
   playlists into their own subfolder, with readable file names.
 - **Bundled yt-dlp.** yt-dlp is a Python dependency of this package, so you do
   not install or update it separately. One command upgrades it.
-- **Sandboxed option on Linux.** Run it in a rootless Podman container with only
-  your media folders mounted.
+- **Ready-made container image.** Pull `ghcr.io/manshaaazar/yt-dlp-mcp` and run
+  it with Docker or rootless Podman with only your media folders mounted. No
+  Python, ffmpeg or Node on the host. Rebuilt weekly with the latest yt-dlp.
 - **Tested against the real protocol.** The test suite launches the server over
   stdio exactly as an MCP client does.
 
@@ -162,21 +165,72 @@ without a clone:
 }
 ```
 
-### Linux (isolated, with rootless Podman)
+## Run in a container (Docker or Podman)
 
-Runs the server in a throwaway container, so ffmpeg, Node and Python stay off
-the host. Only `~/Videos`, `~/Music` and `~/.local/share/yt-dlp-mcp` are
-mounted, at the same paths inside the container, so the file paths the tools
-return are valid on the host and files are owned by your user.
+A multi-arch image (amd64 and arm64) is published to GitHub Container Registry
+on every release and rebuilt weekly with the latest yt-dlp:
+
+```text
+ghcr.io/manshaaazar/yt-dlp-mcp:latest
+```
+
+It bundles Python, yt-dlp, ffmpeg and Node, so nothing else is installed on
+the host. The `run-docker.sh` and `run-podman.sh` scripts in this repo start it
+the way an MCP client expects (stdio), mount only `~/Videos`, `~/Music` and
+`~/.local/share/yt-dlp-mcp` at the same paths inside the container, and run it
+as your user, so the file paths the tools return are real host paths and the
+files are owned by you. The container is read-only, drops all capabilities and
+is memory-limited.
+
+Works on Linux and macOS (Docker Desktop or Podman). On Windows the mounted
+paths differ inside the container, so use the [native install](#install) there.
+
+**Docker**
+
+```bash
+git clone https://github.com/manshaaazar/yt-dlp-mcp.git
+claude mcp add --scope user yt-dlp -- "$PWD/yt-dlp-mcp/run-docker.sh"
+```
+
+Or without the scripts, in any client's MCP config (adjust the two folders):
+
+```json
+{
+  "mcpServers": {
+    "yt-dlp": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "--user", "1000:1000",
+        "-v", "/home/you/Videos:/home/you/Videos",
+        "-v", "/home/you/Music:/home/you/Music",
+        "-e", "YTDLP_VIDEO_DIR=/home/you/Videos",
+        "-e", "YTDLP_AUDIO_DIR=/home/you/Music",
+        "ghcr.io/manshaaazar/yt-dlp-mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+**Rootless Podman (Linux)**
 
 ```bash
 sudo apt install -y podman
-cd yt-dlp-mcp
-podman build -t ytdlp-mcp .
-claude mcp add --scope user yt-dlp -- "$PWD/run-podman.sh"
+git clone https://github.com/manshaaazar/yt-dlp-mcp.git
+claude mcp add --scope user yt-dlp -- "$PWD/yt-dlp-mcp/run-podman.sh"
 ```
 
-Rebuild the image (`podman build -t ytdlp-mcp .`) to pick up code or yt-dlp updates.
+Both scripts accept `YTDLP_MCP_IMAGE` to pin a tag (for example
+`ghcr.io/manshaaazar/yt-dlp-mcp:0.2`) or to use a local build:
+
+```bash
+podman build -t ytdlp-mcp .
+YTDLP_MCP_IMAGE=localhost/ytdlp-mcp:latest ./run-podman.sh
+```
+
+To update, pull the image again (`docker pull ghcr.io/manshaaazar/yt-dlp-mcp:latest`)
+and restart your MCP client.
 
 ### Linux (directly on the host)
 
@@ -232,7 +286,8 @@ uv lock --upgrade-package yt-dlp
 uv sync
 ```
 
-Then restart your MCP client. If you use the Podman image, rebuild it instead.
+Then restart your MCP client. If you use the container image, pull it again
+instead; it is rebuilt weekly with the current yt-dlp.
 
 ## Tests
 
@@ -275,8 +330,9 @@ the playlist. Change this with `YTDLP_VIDEO_DIR` and `YTDLP_AUDIO_DIR`.
 
 **Is it safe to run?**
 The server only talks to your MCP client over stdio and writes to your media
-folders. On Linux you can run it in a rootless, read-only Podman container with
-only those folders mounted.
+folders. With the [container image](#run-in-a-container-docker-or-podman) it
+runs read-only, as your user, with all capabilities dropped and only those
+folders mounted.
 
 ## Contributing
 
@@ -297,4 +353,5 @@ content you have the right to save.
 *Keywords: YouTube MCP server, yt-dlp MCP, Model Context Protocol, Claude MCP
 YouTube downloader, Claude Code YouTube, Claude Desktop YouTube, Cursor MCP
 video download, YouTube transcript MCP, download YouTube video with AI, MP3
-from YouTube with Claude, playlist downloader MCP, Python MCP server.*
+from YouTube with Claude, playlist downloader MCP, Python MCP server, Docker MCP server, yt-dlp Docker
+image.*

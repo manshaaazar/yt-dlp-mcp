@@ -1,8 +1,11 @@
 #!/bin/sh
 # Launch the yt-dlp MCP server in an isolated rootless Podman container.
-# Claude Code runs this as a stdio MCP server.
+# Claude Code (or any MCP client) runs this as a stdio MCP server.
+# Pulls ghcr.io/manshaaazar/yt-dlp-mcp by default. To use a local build
+# (podman build -t ytdlp-mcp .), set YTDLP_MCP_IMAGE=localhost/ytdlp-mcp:latest.
 set -eu
 
+IMAGE="${YTDLP_MCP_IMAGE:-ghcr.io/manshaaazar/yt-dlp-mcp:latest}"
 VIDEO_DIR="${YTDLP_VIDEO_DIR:-$HOME/Videos}"
 AUDIO_DIR="${YTDLP_AUDIO_DIR:-$HOME/Music}"
 STATE_DIR="${YTDLP_MCP_DATA_DIR:-$HOME/.local/share/yt-dlp-mcp}"
@@ -23,4 +26,4 @@ exec podman run -i --rm --name "ytdlp-mcp-$$" \
   -e YTDLP_AUDIO_DIR="$AUDIO_DIR" \
   -e YTDLP_MCP_DATA_DIR="$STATE_DIR" \
   -e YTDLP_MCP_LOG_LEVEL="${YTDLP_MCP_LOG_LEVEL:-INFO}" \
-  localhost/ytdlp-mcp:latest
+  "$IMAGE"
