@@ -232,6 +232,34 @@ YTDLP_MCP_IMAGE=localhost/ytdlp-mcp:latest ./run-podman.sh
 To update, pull the image again (`docker pull ghcr.io/manshaaazar/yt-dlp-mcp:latest`)
 and restart your MCP client.
 
+### One shared container for every session (Podman and systemd)
+
+Started by an MCP client, `run-podman.sh` gives each client its own container:
+three open Claude Code sessions means three containers, and a download dies
+with the session that started it. To run a single container that every session
+shares, start it as a user service and connect to it over HTTP instead:
+
+```bash
+mkdir -p ~/.config/systemd/user
+sed "s|@REPO@|$PWD|" systemd/ytdlp-mcp.service > ~/.config/systemd/user/ytdlp-mcp.service
+systemctl --user daemon-reload
+systemctl --user enable --now ytdlp-mcp
+
+claude mcp remove --scope user yt-dlp   # if the stdio version was added before
+claude mcp add --scope user --transport http yt-dlp http://127.0.0.1:8642/mcp
+```
+
+The service starts at login and is restarted if it crashes. Downloads keep
+running after the session that started them closes, and `check_downloads` shows
+the same job list in every session. Settings from the [table below](#configuration)
+go in `~/.config/ytdlp-mcp/env`, one `KEY=value` per line; restart the service
+(`systemctl --user restart ytdlp-mcp`) after changing them or updating the
+image. Logs: `journalctl --user -u ytdlp-mcp`.
+
+The port is published on `127.0.0.1` only and the server refuses requests not
+addressed to localhost, but there is no login: any program running on your
+machine can use it.
+
 ### Linux (directly on the host)
 
 ```bash
@@ -254,6 +282,9 @@ All settings are optional environment variables.
 | `YTDLP_PROXY` | none | Proxy URL passed to yt-dlp as `--proxy`, e.g. `socks5h://127.0.0.1:40000`. Use `socks5h` so DNS is resolved through the proxy too. With `run-podman.sh`, `socks5h://host.containers.internal:PORT` reaches a proxy listening on the host's loopback |
 | `YTDLP_MCP_WAIT_SECONDS` | `50` | How long a download tool waits before returning a `job_id` |
 | `YTDLP_MCP_LOG_LEVEL` | `INFO` | Log level; logs go to stderr |
+| `YTDLP_MCP_TRANSPORT` | `stdio` | `http` serves streamable HTTP at `/mcp` from one long-lived server that all clients share, instead of one stdio server per client |
+| `YTDLP_MCP_HOST` | `127.0.0.1` | Address to listen on in HTTP mode. `run-podman.sh` sets `0.0.0.0` inside the container and publishes the port on the host's `127.0.0.1` only |
+| `YTDLP_MCP_PORT` | `8642` | Port to listen on in HTTP mode |
 
 The server ignores your personal `yt-dlp.conf` so results stay predictable.
 

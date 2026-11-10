@@ -1,0 +1,24 @@
+# One shared yt-dlp MCP container for every MCP client, started at login.
+#
+#   mkdir -p ~/.config/systemd/user
+#   sed "s|@REPO@|$PWD|" systemd/ytdlp-mcp.service > ~/.config/systemd/user/ytdlp-mcp.service
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now ytdlp-mcp
+#
+# Then point the MCP client at http://127.0.0.1:8642/mcp instead of run-podman.sh.
+
+[Unit]
+Description=yt-dlp MCP server (one container shared by all MCP clients)
+
+[Service]
+Environment=YTDLP_MCP_TRANSPORT=http
+# Optional settings, one KEY=value per line: YTDLP_PROXY, YTDLP_MCP_IMAGE,
+# YTDLP_MCP_PORT, YTDLP_VIDEO_DIR and the rest of the README's table.
+EnvironmentFile=-%h/.config/ytdlp-mcp/env
+ExecStart="@REPO@/run-podman.sh"
+ExecStop=podman stop --ignore --time 10 ytdlp-mcp
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

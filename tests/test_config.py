@@ -1,7 +1,17 @@
 import os
 from pathlib import Path
 
-from ytdlp_mcp.config import Settings, ensure_dirs, ensure_on_path, find_ffmpeg, load_settings
+import pytest
+
+from ytdlp_mcp.config import (
+    HttpSettings,
+    Settings,
+    ensure_dirs,
+    ensure_on_path,
+    find_ffmpeg,
+    load_http_settings,
+    load_settings,
+)
 
 
 def test_default_folders_are_videos_and_music_under_home(tmp_path):
@@ -120,3 +130,29 @@ def test_empty_proxy_env_means_no_proxy(tmp_path):
 def test_proxy_read_from_env(tmp_path):
     env = {"YTDLP_PROXY": "socks5h://127.0.0.1:40000"}
     assert load_settings(env=env, home=tmp_path).proxy == "socks5h://127.0.0.1:40000"
+
+
+def test_transport_is_stdio_unless_http_is_asked_for():
+    assert load_http_settings(env={}) is None
+    assert load_http_settings(env={"YTDLP_MCP_TRANSPORT": "stdio"}) is None
+
+
+def test_http_transport_listens_on_loopback_by_default():
+    settings = load_http_settings(env={"YTDLP_MCP_TRANSPORT": "http"})
+    assert settings == HttpSettings(host="127.0.0.1", port=8642)
+
+
+def test_http_host_and_port_read_from_env():
+    env = {"YTDLP_MCP_TRANSPORT": "http", "YTDLP_MCP_HOST": "0.0.0.0", "YTDLP_MCP_PORT": "9000"}
+    assert load_http_settings(env=env) == HttpSettings(host="0.0.0.0", port=9000)
+
+
+def test_unknown_transport_is_rejected():
+    with pytest.raises(ValueError, match="YTDLP_MCP_TRANSPORT"):
+        load_http_settings(env={"YTDLP_MCP_TRANSPORT": "sse"})
+
+
+@pytest.mark.parametrize("port", ["abc", "0", "70000"])
+def test_bad_http_port_is_rejected(port):
+    with pytest.raises(ValueError, match="YTDLP_MCP_PORT"):
+        load_http_settings(env={"YTDLP_MCP_TRANSPORT": "http", "YTDLP_MCP_PORT": port})

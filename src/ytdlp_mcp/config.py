@@ -48,6 +48,33 @@ def load_settings(
     )
 
 
+DEFAULT_HTTP_PORT = 8642
+
+
+@dataclass(frozen=True)
+class HttpSettings:
+    host: str
+    port: int
+
+
+def load_http_settings(env: Mapping[str, str] | None = None) -> HttpSettings | None:
+    """Where to serve streamable HTTP, or None for stdio (the default).
+
+    stdio gives every MCP client its own server process. YTDLP_MCP_TRANSPORT=http
+    runs one long-lived server that all clients share.
+    """
+    env = os.environ if env is None else env
+    transport = (env.get("YTDLP_MCP_TRANSPORT") or "stdio").lower()
+    if transport == "stdio":
+        return None
+    if transport != "http":
+        raise ValueError(f"YTDLP_MCP_TRANSPORT must be 'stdio' or 'http', not {transport!r}")
+    raw_port = env.get("YTDLP_MCP_PORT") or str(DEFAULT_HTTP_PORT)
+    if not raw_port.isdecimal() or not 1 <= int(raw_port) <= 65535:
+        raise ValueError(f"YTDLP_MCP_PORT must be a port number from 1 to 65535, not {raw_port!r}")
+    return HttpSettings(host=env.get("YTDLP_MCP_HOST") or "127.0.0.1", port=int(raw_port))
+
+
 def find_ffmpeg(
     env: Mapping[str, str] | None = None,
     which: Callable[[str], str | None] = shutil.which,

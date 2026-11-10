@@ -7,16 +7,27 @@ from typing import Annotated, Any, Literal
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp.server.transport_security import TransportSecuritySettings
 from mcp_types import ToolAnnotations
 from pydantic import Field
 
 from .argv import PlaylistOptions, build_audio_argv, build_video_argv
-from .config import Settings, load_settings
+from .config import Settings, load_http_settings, load_settings
 from .core import Downloader
 from .jobs import JobManager
 from .urls import is_channel_url, normalize_channel_url
 
 WAIT_SECONDS = float(os.environ.get("YTDLP_MCP_WAIT_SECONDS", "50"))
+
+# In HTTP mode the server has no login, so it only answers requests addressed to
+# localhost. The SDK applies this by itself when bound to 127.0.0.1, but a
+# container has to bind 0.0.0.0 (its port is published on the host's loopback),
+# and without this check a web page could reach it through DNS rebinding.
+LOCALHOST_ONLY = TransportSecuritySettings(
+    enable_dns_rebinding_protection=True,
+    allowed_hosts=["127.0.0.1:*", "localhost:*", "[::1]:*"],
+    allowed_origins=["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*"],
+)
 
 mcp = MCPServer(
     "yt-dlp",
@@ -239,4 +250,19 @@ def main() -> None:
         level=os.environ.get("YTDLP_MCP_LOG_LEVEL", "INFO"),
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
-    mcp.run()
+    try:
+        http = load_http_settings()
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    if http is None:
+        mcp.run()
+        return
+    # One shared server for every client. Stateless, so clients keep working across a
+    # server restart; downloads live in the module-level job manager, not in a session.
+    mcp.run(
+        "streamable-http",
+        host=http.host,
+        port=http.port,
+        stateless_http=True,
+        transport_security=LOCALHOST_ONLY,
+    )
