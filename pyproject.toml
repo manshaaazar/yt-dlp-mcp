@@ -1,6 +1,6 @@
 [project]
 name = "ytdlp-mcp"
-version = "0.2.0"
+version = "0.3.0"
 description = "YouTube MCP server built on yt-dlp: download video and audio, read transcripts, search YouTube, and sync playlists from Claude and any MCP client"
 readme = "README.md"
 license = "MIT"

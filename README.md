@@ -222,7 +222,7 @@ claude mcp add --scope user yt-dlp -- "$PWD/yt-dlp-mcp/run-podman.sh"
 ```
 
 Both scripts accept `YTDLP_MCP_IMAGE` to pin a tag (for example
-`ghcr.io/manshaaazar/yt-dlp-mcp:0.2`) or to use a local build:
+`ghcr.io/manshaaazar/yt-dlp-mcp:0.3`) or to use a local build:
 
 ```bash
 podman build -t ytdlp-mcp .
