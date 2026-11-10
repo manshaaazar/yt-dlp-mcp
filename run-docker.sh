@@ -26,4 +26,5 @@ exec docker run -i --rm --name "ytdlp-mcp-$$" \
   -e YTDLP_AUDIO_DIR="$AUDIO_DIR" \
   -e YTDLP_MCP_DATA_DIR="$STATE_DIR" \
   -e YTDLP_MCP_LOG_LEVEL="${YTDLP_MCP_LOG_LEVEL:-INFO}" \
+  -e YTDLP_PROXY="${YTDLP_PROXY:-}" \
   "$IMAGE"

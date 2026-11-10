@@ -15,6 +15,7 @@ class Settings:
     data_dir: Path
     ffmpeg: Path | None
     node: str | None
+    proxy: str | None = None  # yt-dlp --proxy URL, e.g. socks5h://host:port
 
     @property
     def archive_file(self) -> Path:
@@ -43,6 +44,7 @@ def load_settings(
         data_dir=Path(env.get("YTDLP_MCP_DATA_DIR") or _default_data_dir(env, home)),
         ffmpeg=find_ffmpeg(env, which),
         node=find_node(env, which),
+        proxy=env.get("YTDLP_PROXY") or None,
     )
 
 

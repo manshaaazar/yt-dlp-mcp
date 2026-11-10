@@ -251,6 +251,7 @@ All settings are optional environment variables.
 | `YTDLP_MCP_DATA_DIR` | `%LOCALAPPDATA%\yt-dlp-mcp` on Windows, `$XDG_DATA_HOME/yt-dlp-mcp` (default `~/.local/share/yt-dlp-mcp`) elsewhere | Holds `archive.txt`, the record of playlist items already downloaded |
 | `YTDLP_FFMPEG` | auto-detected | Full path to the ffmpeg executable |
 | `YTDLP_NODE` | `node` on PATH | Full path to the Node.js executable |
+| `YTDLP_PROXY` | none | Proxy URL passed to yt-dlp as `--proxy`, e.g. `socks5h://127.0.0.1:40000`. Use `socks5h` so DNS is resolved through the proxy too. With `run-podman.sh`, `socks5h://host.containers.internal:PORT` reaches a proxy listening on the host's loopback |
 | `YTDLP_MCP_WAIT_SECONDS` | `50` | How long a download tool waits before returning a `job_id` |
 | `YTDLP_MCP_LOG_LEVEL` | `INFO` | Log level; logs go to stderr |
 

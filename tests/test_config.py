@@ -107,3 +107,16 @@ def test_ensure_dirs_creates_data_dir_for_archive(tmp_path):
     assert settings.data_dir.is_dir()
     assert settings.video_dir.is_dir()
     assert settings.audio_dir.is_dir()
+
+
+def test_proxy_unset_by_default(tmp_path):
+    assert load_settings(env={}, home=tmp_path).proxy is None
+
+
+def test_empty_proxy_env_means_no_proxy(tmp_path):
+    assert load_settings(env={"YTDLP_PROXY": ""}, home=tmp_path).proxy is None
+
+
+def test_proxy_read_from_env(tmp_path):
+    env = {"YTDLP_PROXY": "socks5h://127.0.0.1:40000"}
+    assert load_settings(env=env, home=tmp_path).proxy == "socks5h://127.0.0.1:40000"

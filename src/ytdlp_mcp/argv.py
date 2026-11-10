@@ -75,6 +75,8 @@ def _base(settings: Settings, home) -> list[str]:
     if settings.ffmpeg:
         argv += ["--ffmpeg-location", str(settings.ffmpeg)]
     argv += ["--js-runtimes", f"node:{settings.node}" if settings.node else "node"]
+    if settings.proxy:
+        argv += ["--proxy", settings.proxy]
     return argv
 
 

@@ -1,3 +1,4 @@
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -5,6 +6,7 @@ import pytest
 from ytdlp_mcp.argv import (
     PlaylistOptions,
     build_audio_argv,
+    build_query_argv,
     build_video_argv,
     parse_timestamp,
     to_ydl_opts,
@@ -92,6 +94,14 @@ def test_video_clip_with_only_start_runs_to_end(settings):
     argv = build_video_argv(settings, start="10")
     assert value_after(argv, "--download-sections") == "*10-inf"
     assert to_ydl_opts(argv)["outtmpl"]["default"].endswith("(10-end).%(ext)s")
+
+
+def test_proxy_only_when_configured(settings):
+    assert "--proxy" not in build_video_argv(settings)
+    proxied = replace(settings, proxy="socks5h://host.containers.internal:40000")
+    assert value_after(build_video_argv(proxied), "--proxy") == "socks5h://host.containers.internal:40000"
+    assert value_after(build_audio_argv(proxied), "--proxy") == "socks5h://host.containers.internal:40000"
+    assert value_after(build_query_argv(proxied), "--proxy") == "socks5h://host.containers.internal:40000"
 
 
 def test_ignores_user_yt_dlp_config_files(settings):
